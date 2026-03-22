@@ -1,64 +1,69 @@
-# Sophia Workspace
+# Sophia Workspace 🦉
 
 A voice-enabled three-pane workspace for collaborating with Sophia (OpenClaw AI assistant).
 
 ## Features
 
-- **Left Pane (Workspace)**: The main deliverable - code, documents, whatever we're building together
-- **Middle Pane (Scratchpad)**: Research, notes, images, supporting material
-- **Right Pane (Dialogue)**: Voice-enabled conversation with full transcript
-
-All panes are resizable with drag handles.
+- **Three resizable panes** with drag handles:
+  - **Left (Workspace)**: The main deliverable - code, documents, whatever we're building
+  - **Middle (Scratchpad)**: Research, notes, images, context
+  - **Right (Dialogue)**: Voice + text conversation with full transcript
+- **Voice input** via OpenAI Whisper speech-to-text
+- **Voice output** via OpenAI TTS with Shimmer voice (toggle on/off)
+- **Text input** for when voice isn't convenient
+- **Markdown rendering** with syntax highlighting for code
+- **Session persistence** - conversation saved to localStorage
+- **Connection status** indicator in header
+- **Clear conversation** button
 
 ## Tech Stack
 
-- Next.js 14 (App Router)
+- Next.js 16 (App Router)
 - OpenAI Whisper (speech-to-text)
-- OpenAI TTS with Shimmer voice (text-to-speech)
+- OpenAI TTS with Shimmer voice
 - OpenClaw Gateway (chat backend)
 - Tailwind CSS
+- react-markdown with remark-gfm
+- react-syntax-highlighter
 
-## Setup
-
-1. Clone the repo
-2. Copy `.env.example` to `.env.local`
-3. Fill in your API keys:
-   - `OPENAI_API_KEY`: Your OpenAI API key
-   - `GATEWAY_URL`: Your OpenClaw gateway URL
-   - `GATEWAY_TOKEN`: Your gateway authentication token
+## Quick Start
 
 ```bash
-npm install
+cd /Users/openclaw/.openclaw/workspace/projects/sophia-workspace
 npm run dev
+# Open http://localhost:3000
 ```
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/sophia-workspace)
+See [DEPLOY.md](./DEPLOY.md) for full instructions.
 
-Set the environment variables in Vercel:
-- `OPENAI_API_KEY`
-- `GATEWAY_URL`
-- `GATEWAY_TOKEN`
+Quick version:
+```bash
+npx vercel login
+npx vercel --prod
+# Add environment variables in Vercel dashboard
+```
 
 ## Usage
 
-1. Click the microphone button to start recording
-2. Speak your message
-3. Click again to stop and send
-4. Sophia will respond with voice (auto-plays) and update the panes if needed
+1. Click the microphone or type in the text box
+2. I respond with voice (if enabled) and can update the workspace/scratchpad
+3. Drag the dividers to resize panes
+4. Click speaker icon to toggle voice responses
+5. Click trash icon to clear conversation
 
 ### Pane Content Markers
 
-Sophia can update the workspace and scratchpad panes by including special markers in her response:
+I update the workspace and scratchpad using markers in my response:
 
 ```
 [[WORKSPACE]]
-code or content here
+Your code or document here
 [[/WORKSPACE]]
 
 [[SCRATCHPAD]]
-research notes here
+Research notes here
 [[/SCRATCHPAD]]
 ```
 

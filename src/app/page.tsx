@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import Dashboard from '@/components/Dashboard';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -357,6 +358,16 @@ export default function Home() {
             💬 Chat
           </button>
           <button
+            onClick={() => setMobileTab('scratchpad')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              mobileTab === 'scratchpad' 
+                ? 'text-blue-400 border-b-2 border-blue-400' 
+                : 'text-gray-400'
+            }`}
+          >
+            📁 Our Work
+          </button>
+          <button
             onClick={() => setMobileTab('workspace')}
             className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
               mobileTab === 'workspace' 
@@ -365,20 +376,7 @@ export default function Home() {
             }`}
           >
             📄 Workspace
-            {workspaceContent && mobileTab !== 'workspace' && (
-              <span className="absolute top-2 right-4 w-2 h-2 bg-blue-500 rounded-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setMobileTab('scratchpad')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
-              mobileTab === 'scratchpad' 
-                ? 'text-blue-400 border-b-2 border-blue-400' 
-                : 'text-gray-400'
-            }`}
-          >
-            📝 Notes
-            {scratchpadContent && mobileTab !== 'scratchpad' && (
+            {(workspaceContent || scratchpadContent) && mobileTab !== 'workspace' && (
               <span className="absolute top-2 right-4 w-2 h-2 bg-blue-500 rounded-full" />
             )}
           </button>
@@ -469,32 +467,23 @@ export default function Home() {
           {/* Workspace Tab */}
           {mobileTab === 'workspace' && (
             <div className="h-full overflow-auto p-4">
-              {workspaceContent ? (
-                <MarkdownRenderer content={workspaceContent} />
+              {workspaceContent || scratchpadContent ? (
+                <MarkdownRenderer content={workspaceContent || scratchpadContent} />
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <p className="text-gray-500 italic text-center">
                     The workspace is empty.<br />
-                    Content will appear here when we work on something together.
+                    What we build together will appear here.
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Scratchpad Tab */}
+          {/* Our Work Tab (Dashboard) */}
           {mobileTab === 'scratchpad' && (
-            <div className="h-full overflow-auto p-4">
-              {scratchpadContent ? (
-                <MarkdownRenderer content={scratchpadContent} />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-gray-500 italic text-center">
-                    The scratchpad is empty.<br />
-                    Research and notes will appear here.
-                  </p>
-                </div>
-              )}
+            <div className="h-full overflow-hidden">
+              <Dashboard />
             </div>
           )}
         </div>
@@ -529,20 +518,16 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Pane - Workspace */}
+        {/* Left Pane - Our Work Dashboard */}
         <div 
           className="h-full flex flex-col border-r border-gray-700"
           style={{ width: `${paneWidths.left}%` }}
         >
           <div className="p-3 border-b border-gray-700 bg-gray-800">
-            <h2 className="text-sm font-semibold text-gray-300">Workspace</h2>
+            <h2 className="text-sm font-semibold text-gray-300">Our Work</h2>
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            {workspaceContent ? (
-              <MarkdownRenderer content={workspaceContent} />
-            ) : (
-              <p className="text-gray-500 italic">The main deliverable will appear here...</p>
-            )}
+          <div className="flex-1 overflow-hidden">
+            <Dashboard />
           </div>
         </div>
 
@@ -552,19 +537,39 @@ export default function Home() {
           onMouseDown={(e) => handleMouseDown('left', e)}
         />
 
-        {/* Middle Pane - Scratchpad */}
+        {/* Middle Pane - Active Work */}
         <div 
           className="h-full flex flex-col border-r border-gray-700"
           style={{ width: `${paneWidths.middle}%` }}
         >
-          <div className="p-3 border-b border-gray-700 bg-gray-800">
-            <h2 className="text-sm font-semibold text-gray-300">Scratchpad</h2>
+          <div className="p-3 border-b border-gray-700 bg-gray-800 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-300">Workspace</h2>
+            {(workspaceContent || scratchpadContent) && (
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    // Toggle between workspace and scratchpad
+                    const temp = workspaceContent;
+                    setWorkspaceContent(scratchpadContent);
+                    setScratchpadContent(temp);
+                  }}
+                  className="p-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+                  title="Swap with scratchpad"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex-1 overflow-auto p-4">
-            {scratchpadContent ? (
+            {workspaceContent ? (
+              <MarkdownRenderer content={workspaceContent} />
+            ) : scratchpadContent ? (
               <MarkdownRenderer content={scratchpadContent} />
             ) : (
-              <p className="text-gray-500 italic">Research, notes, and context will appear here...</p>
+              <p className="text-gray-500 italic">What we&apos;re building together will appear here...</p>
             )}
           </div>
         </div>

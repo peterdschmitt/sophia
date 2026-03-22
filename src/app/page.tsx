@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import CodeBlock from '@/components/CodeBlock';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -230,7 +230,7 @@ export default function Home() {
         </div>
         <div className="flex-1 overflow-auto p-4">
           {workspaceContent ? (
-            <CodeBlock content={workspaceContent} />
+            <MarkdownRenderer content={workspaceContent} />
           ) : (
             <p className="text-gray-500 italic">The main deliverable will appear here...</p>
           )}
@@ -253,7 +253,7 @@ export default function Home() {
         </div>
         <div className="flex-1 overflow-auto p-4">
           {scratchpadContent ? (
-            <CodeBlock content={scratchpadContent} />
+            <MarkdownRenderer content={scratchpadContent} />
           ) : (
             <p className="text-gray-500 italic">Research, notes, and context will appear here...</p>
           )}

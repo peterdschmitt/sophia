@@ -17,6 +17,7 @@ interface PaneWidths {
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [workspaceContent, setWorkspaceContent] = useState<string>('');
@@ -24,6 +25,23 @@ export default function Home() {
   const [paneWidths, setPaneWidths] = useState<PaneWidths>({ left: 40, middle: 30, right: 30 });
   const [textInput, setTextInput] = useState('');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  // Check gateway connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'ping' }),
+        });
+        setIsConnected(res.ok);
+      } catch {
+        setIsConnected(false);
+      }
+    };
+    checkConnection();
+  }, []);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -265,7 +283,29 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="h-screen w-screen flex bg-gray-900 text-white overflow-hidden">
+    <main className="h-screen w-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+      {/* Header */}
+      <header className="flex-shrink-0 h-12 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">🦉</span>
+          <h1 className="font-semibold text-white">Sophia Workspace</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm">
+            <span className={`w-2 h-2 rounded-full ${
+              isConnected === null ? 'bg-yellow-500 animate-pulse' :
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`} />
+            <span className="text-gray-400">
+              {isConnected === null ? 'Connecting...' :
+               isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
       {/* Left Pane - Workspace */}
       <div 
         className="h-full flex flex-col border-r border-gray-700"
@@ -434,7 +474,8 @@ export default function Home() {
       </div>
 
       {/* Hidden audio element for playback */}
-      <audio ref={audioRef} className="hidden" />
+        <audio ref={audioRef} className="hidden" />
+      </div>
     </main>
   );
 }

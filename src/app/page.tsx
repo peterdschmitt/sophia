@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import CodeBlock from '@/components/CodeBlock';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -229,7 +230,7 @@ export default function Home() {
         </div>
         <div className="flex-1 overflow-auto p-4">
           {workspaceContent ? (
-            <pre className="whitespace-pre-wrap text-sm font-mono text-gray-200">{workspaceContent}</pre>
+            <CodeBlock content={workspaceContent} />
           ) : (
             <p className="text-gray-500 italic">The main deliverable will appear here...</p>
           )}
@@ -252,7 +253,7 @@ export default function Home() {
         </div>
         <div className="flex-1 overflow-auto p-4">
           {scratchpadContent ? (
-            <pre className="whitespace-pre-wrap text-sm font-mono text-gray-200">{scratchpadContent}</pre>
+            <CodeBlock content={scratchpadContent} />
           ) : (
             <p className="text-gray-500 italic">Research, notes, and context will appear here...</p>
           )}

@@ -59,6 +59,26 @@ interface SkillsData {
   error?: string;
 }
 
+interface VoiceOption {
+  id: string;
+  name: string;
+  description: string;
+  provider?: string;
+}
+
+interface SettingsData {
+  openai: {
+    voice: string;
+    instructions: string;
+    availableVoices: VoiceOption[];
+  };
+  vapi: {
+    voice: string;
+    provider: string;
+    availableVoices: VoiceOption[];
+  };
+}
+
 interface DashboardProps {
   onRefresh?: () => void;
 }
@@ -68,8 +88,11 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
   const [skillsData, setSkillsData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [skillsLoading, setSkillsLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<'projects' | 'updates' | 'memories' | 'ideas' | 'skills'>('projects');
+  const [activeSection, setActiveSection] = useState<'projects' | 'updates' | 'memories' | 'ideas' | 'skills' | 'settings'>('projects');
   const [skillAction, setSkillAction] = useState<string | null>(null);
+  const [settingsData, setSettingsData] = useState<SettingsData | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [savingVoice, setSavingVoice] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -79,7 +102,10 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
     if (activeSection === 'skills' && !skillsData && !skillsLoading) {
       fetchSkills();
     }
-  }, [activeSection, skillsData, skillsLoading]);
+    if (activeSection === 'settings' && !settingsData && !settingsLoading) {
+      fetchSettings();
+    }
+  }, [activeSection, skillsData, skillsLoading, settingsData, settingsLoading]);
 
   const fetchSkills = async () => {
     setSkillsLoading(true);
@@ -130,6 +156,57 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
   const formatNumber = (n: number): string => {
     if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
     return n.toString();
+  };
+
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setSettingsData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const updateVoice = async (type: 'openai' | 'vapi', voice: string, provider?: string) => {
+    setSavingVoice(`${type}-${voice}`);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, voice, provider }),
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        // Update local state
+        if (type === 'openai' && settingsData) {
+          setSettingsData({
+            ...settingsData,
+            openai: { ...settingsData.openai, voice }
+          });
+        } else if (type === 'vapi' && settingsData) {
+          setSettingsData({
+            ...settingsData,
+            vapi: { ...settingsData.vapi, voice, provider: provider || settingsData.vapi.provider }
+          });
+        }
+        alert(result.message || 'Voice updated!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update voice');
+      }
+    } catch (error) {
+      console.error('Voice update failed:', error);
+      alert('Failed to update voice');
+    } finally {
+      setSavingVoice(null);
+    }
   };
 
   const fetchDashboard = async () => {
@@ -215,7 +292,7 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
     <div className="h-full flex flex-col">
       {/* Section Tabs */}
       <div className="flex-shrink-0 flex border-b border-gray-700 bg-gray-800/50 overflow-x-auto">
-        {(['projects', 'updates', 'memories', 'ideas', 'skills'] as const).map((section) => (
+        {(['projects', 'updates', 'memories', 'ideas', 'skills', 'settings'] as const).map((section) => (
           <button
             key={section}
             onClick={() => setActiveSection(section)}
@@ -230,6 +307,7 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
             {section === 'memories' && '🧠'}
             {section === 'ideas' && '💡'}
             {section === 'skills' && '🧩'}
+            {section === 'settings' && '⚙️'}
           </button>
         ))}
       </div>
@@ -459,6 +537,90 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
                 className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors"
               >
                 Load Skills
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Settings Section */}
+        {activeSection === 'settings' && (
+          <div className="space-y-6">
+            {settingsLoading ? (
+              <p className="text-gray-400 text-sm animate-pulse">Loading settings...</p>
+            ) : settingsData ? (
+              <>
+                {/* OpenAI TTS Voice */}
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">🎤 Telegram Voice</h3>
+                  <p className="text-xs text-gray-500 mb-3">OpenAI TTS for voice messages</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {settingsData.openai.availableVoices.map((voice) => (
+                      <button
+                        key={voice.id}
+                        onClick={() => updateVoice('openai', voice.id)}
+                        disabled={savingVoice !== null}
+                        className={`p-2 rounded-lg border text-left transition-all ${
+                          settingsData.openai.voice === voice.id
+                            ? 'bg-blue-900 border-blue-500 text-white'
+                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500'
+                        } ${savingVoice === `openai-${voice.id}` ? 'animate-pulse' : ''}`}
+                      >
+                        <div className="font-medium text-sm">{voice.name}</div>
+                        <div className="text-[10px] text-gray-400">{voice.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* VAPI Phone Voice */}
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">📞 Phone Voice</h3>
+                  <p className="text-xs text-gray-500 mb-3">VAPI for outbound calls</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {settingsData.vapi.availableVoices.map((voice) => (
+                      <button
+                        key={voice.id}
+                        onClick={() => updateVoice('vapi', voice.id, voice.provider)}
+                        disabled={savingVoice !== null}
+                        className={`p-2 rounded-lg border text-left transition-all ${
+                          settingsData.vapi.voice === voice.id
+                            ? 'bg-blue-900 border-blue-500 text-white'
+                            : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500'
+                        } ${savingVoice === `vapi-${voice.id}` ? 'animate-pulse' : ''}`}
+                      >
+                        <div className="font-medium text-sm">{voice.name}</div>
+                        <div className="text-[10px] text-gray-400">
+                          {voice.description}
+                          {voice.provider && voice.provider !== 'vapi' && (
+                            <span className="ml-1 text-gray-500">({voice.provider})</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Current Settings Summary */}
+                <div className="pt-4 border-t border-gray-700">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Current Config</h3>
+                  <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Telegram:</span>
+                      <span className="text-white">{settingsData.openai.voice}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Phone:</span>
+                      <span className="text-white">{settingsData.vapi.voice} ({settingsData.vapi.provider})</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={fetchSettings}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors"
+              >
+                Load Settings
               </button>
             )}
           </div>

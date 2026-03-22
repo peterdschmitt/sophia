@@ -21,12 +21,28 @@ interface Idea {
   category: 'productivity' | 'automation' | 'communication' | 'learning';
 }
 
+interface SkillStats {
+  downloads: number;
+  installs: number;
+  stars: number;
+}
+
+interface SkillOwner {
+  handle: string;
+  displayName: string;
+  image?: string;
+}
+
 interface Skill {
   name: string;
+  displayName: string;
   description: string;
+  stats: SkillStats;
+  owner: SkillOwner;
+  version: string;
+  updatedAt: string;
+  trustScore: number;
   path?: string;
-  hasSkillMd?: boolean;
-  clawhubUrl?: string;
 }
 
 interface DashboardData {
@@ -102,6 +118,18 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
     } finally {
       setSkillAction(null);
     }
+  };
+
+  const getTrustBadge = (score: number) => {
+    if (score >= 80) return { label: 'Trusted', bg: 'bg-green-900', text: 'text-green-300', border: 'border-green-700' };
+    if (score >= 60) return { label: 'Verified', bg: 'bg-blue-900', text: 'text-blue-300', border: 'border-blue-700' };
+    if (score >= 40) return { label: 'Community', bg: 'bg-yellow-900', text: 'text-yellow-300', border: 'border-yellow-700' };
+    return { label: 'New', bg: 'bg-gray-800', text: 'text-gray-400', border: 'border-gray-600' };
+  };
+
+  const formatNumber = (n: number): string => {
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return n.toString();
   };
 
   const fetchDashboard = async () => {
@@ -317,28 +345,48 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
                     <p className="text-gray-500 italic text-sm">No skills installed</p>
                   ) : (
                     <div className="space-y-2">
-                      {skillsData.installed.map((skill, idx) => (
-                        <div 
-                          key={idx}
-                          className="bg-gray-800 rounded-lg p-3 border border-gray-700"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-white text-sm">{skill.name}</h4>
-                              <p className="text-gray-400 text-xs mt-1">{skill.description}</p>
-                            </div>
-                            <div className="flex gap-1 ml-2">
+                      {skillsData.installed.map((skill, idx) => {
+                        const trust = getTrustBadge(skill.trustScore);
+                        return (
+                          <div 
+                            key={idx}
+                            className="bg-gray-800 rounded-lg p-3 border border-gray-700"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-medium text-white text-sm">{skill.displayName}</h4>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${trust.bg} ${trust.text} border ${trust.border}`}>
+                                    {trust.label}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500">v{skill.version}</span>
+                                </div>
+                                <p className="text-gray-400 text-xs mt-1 line-clamp-2">{skill.description}</p>
+                              </div>
                               <button
                                 onClick={() => performSkillAction('update', skill.name)}
-                                className="p-1 rounded bg-gray-700 hover:bg-gray-600 text-xs"
+                                className="p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs ml-2 flex-shrink-0"
                                 title="Update"
                               >
                                 🔄
                               </button>
                             </div>
+                            <div className="flex items-center justify-between text-[10px] text-gray-500">
+                              <div className="flex items-center gap-3">
+                                <span title="Downloads">⬇️ {formatNumber(skill.stats.downloads)}</span>
+                                <span title="Active installs">📦 {formatNumber(skill.stats.installs)}</span>
+                                <span title="Stars">⭐ {skill.stats.stars}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {skill.owner.image && (
+                                  <img src={skill.owner.image} alt="" className="w-4 h-4 rounded-full" />
+                                )}
+                                <span>@{skill.owner.handle}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -361,26 +409,46 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
                   <div>
                     <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Suggested</h3>
                     <div className="space-y-2">
-                      {skillsData.suggested.map((skill, idx) => (
-                        <div 
-                          key={idx}
-                          className="bg-gray-800 rounded-lg p-3 border border-gray-700"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-white text-sm">{skill.name}</h4>
-                              <p className="text-gray-400 text-xs mt-1">{skill.description}</p>
+                      {skillsData.suggested.map((skill, idx) => {
+                        const trust = getTrustBadge(skill.trustScore);
+                        return (
+                          <div 
+                            key={idx}
+                            className="bg-gray-800 rounded-lg p-3 border border-gray-700"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-medium text-white text-sm">{skill.displayName}</h4>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${trust.bg} ${trust.text} border ${trust.border}`}>
+                                    {trust.label}
+                                  </span>
+                                </div>
+                                <p className="text-gray-400 text-xs mt-1 line-clamp-2">{skill.description}</p>
+                              </div>
+                              <button
+                                onClick={() => performSkillAction('install', skill.name)}
+                                className="p-1.5 rounded bg-green-700 hover:bg-green-600 text-xs ml-2 flex-shrink-0"
+                                title="Install"
+                              >
+                                ➕
+                              </button>
                             </div>
-                            <button
-                              onClick={() => performSkillAction('install', skill.name)}
-                              className="p-1.5 rounded bg-green-700 hover:bg-green-600 text-xs"
-                              title="Install"
-                            >
-                              ➕
-                            </button>
+                            <div className="flex items-center justify-between text-[10px] text-gray-500">
+                              <div className="flex items-center gap-3">
+                                <span title="Downloads">⬇️ {formatNumber(skill.stats.downloads)}</span>
+                                <span title="Stars">⭐ {skill.stats.stars}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {skill.owner.image && (
+                                  <img src={skill.owner.image} alt="" className="w-4 h-4 rounded-full" />
+                                )}
+                                <span>@{skill.owner.handle}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

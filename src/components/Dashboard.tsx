@@ -45,13 +45,30 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/dashboard');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      
+      const res = await fetch('/api/dashboard', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (res.ok) {
         const dashboardData = await res.json();
         setData(dashboardData);
+      } else {
+        throw new Error('Failed to fetch');
       }
     } catch (error) {
       console.error('Failed to fetch dashboard:', error);
+      // Set fallback data
+      setData({
+        projects: [
+          { name: "Loading...", status: "active" as const, description: "Dashboard is connecting to your workspace...", lastUpdated: "now" }
+        ],
+        recentUpdates: ["Connecting to gateway..."],
+        memories: [],
+        ideas: [],
+        lastRefreshed: new Date().toLocaleTimeString(),
+      });
     } finally {
       setLoading(false);
     }

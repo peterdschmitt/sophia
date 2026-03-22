@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "env": {
+    "OPENAI_API_KEY": "@openai-api-key",
+    "GATEWAY_URL": "@gateway-url",
+    "GATEWAY_TOKEN": "@gateway-token"
+  }
+}

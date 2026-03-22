@@ -21,6 +21,14 @@ interface Idea {
   category: 'productivity' | 'automation' | 'communication' | 'learning';
 }
 
+interface Skill {
+  name: string;
+  description: string;
+  path?: string;
+  hasSkillMd?: boolean;
+  clawhubUrl?: string;
+}
+
 interface DashboardData {
   projects: Project[];
   recentUpdates: string[];
@@ -29,18 +37,72 @@ interface DashboardData {
   lastRefreshed: string;
 }
 
+interface SkillsData {
+  installed: Skill[];
+  suggested: Skill[];
+  error?: string;
+}
+
 interface DashboardProps {
   onRefresh?: () => void;
 }
 
 export default function Dashboard({ onRefresh }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [skillsData, setSkillsData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'projects' | 'updates' | 'memories' | 'ideas'>('projects');
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState<'projects' | 'updates' | 'memories' | 'ideas' | 'skills'>('projects');
+  const [skillAction, setSkillAction] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  useEffect(() => {
+    if (activeSection === 'skills' && !skillsData && !skillsLoading) {
+      fetchSkills();
+    }
+  }, [activeSection, skillsData, skillsLoading]);
+
+  const fetchSkills = async () => {
+    setSkillsLoading(true);
+    try {
+      const res = await fetch('/api/skills');
+      if (res.ok) {
+        const data = await res.json();
+        setSkillsData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch skills:', error);
+      setSkillsData({ installed: [], suggested: [], error: 'Failed to load skills' });
+    } finally {
+      setSkillsLoading(false);
+    }
+  };
+
+  const performSkillAction = async (action: string, skillName: string) => {
+    setSkillAction(`${action}ing ${skillName}...`);
+    try {
+      const res = await fetch('/api/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, skillName }),
+      });
+      if (res.ok) {
+        const { result } = await res.json();
+        alert(result);
+        // Refresh skills list
+        setSkillsData(null);
+        fetchSkills();
+      }
+    } catch (error) {
+      console.error('Skill action failed:', error);
+      alert('Failed to perform action');
+    } finally {
+      setSkillAction(null);
+    }
+  };
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -124,21 +186,22 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Section Tabs */}
-      <div className="flex-shrink-0 flex border-b border-gray-700 bg-gray-800/50">
-        {(['projects', 'updates', 'memories', 'ideas'] as const).map((section) => (
+      <div className="flex-shrink-0 flex border-b border-gray-700 bg-gray-800/50 overflow-x-auto">
+        {(['projects', 'updates', 'memories', 'ideas', 'skills'] as const).map((section) => (
           <button
             key={section}
             onClick={() => setActiveSection(section)}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${
+            className={`flex-1 min-w-fit py-2 px-2 text-xs font-medium transition-colors whitespace-nowrap ${
               activeSection === section
                 ? 'text-blue-400 border-b-2 border-blue-400 bg-gray-800'
                 : 'text-gray-400 hover:text-gray-300'
             }`}
           >
-            {section === 'projects' && '📁 Projects'}
-            {section === 'updates' && '🔄 Updates'}
-            {section === 'memories' && '🧠 Memories'}
-            {section === 'ideas' && '💡 Ideas'}
+            {section === 'projects' && '📁'}
+            {section === 'updates' && '🔄'}
+            {section === 'memories' && '🧠'}
+            {section === 'ideas' && '💡'}
+            {section === 'skills' && '🧩'}
           </button>
         ))}
       </div>
@@ -230,6 +293,105 @@ export default function Dashboard({ onRefresh }: DashboardProps) {
                   <p className="text-gray-400 text-xs">{idea.description}</p>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Skills Section */}
+        {activeSection === 'skills' && (
+          <div className="space-y-4">
+            {skillAction && (
+              <div className="bg-blue-900/50 rounded-lg p-3 border border-blue-700 text-center">
+                <p className="text-blue-300 text-sm animate-pulse">{skillAction}</p>
+              </div>
+            )}
+
+            {skillsLoading ? (
+              <p className="text-gray-400 text-sm animate-pulse">Loading skills...</p>
+            ) : skillsData ? (
+              <>
+                {/* Installed Skills */}
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Installed</h3>
+                  {skillsData.installed.length === 0 ? (
+                    <p className="text-gray-500 italic text-sm">No skills installed</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {skillsData.installed.map((skill, idx) => (
+                        <div 
+                          key={idx}
+                          className="bg-gray-800 rounded-lg p-3 border border-gray-700"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-white text-sm">{skill.name}</h4>
+                              <p className="text-gray-400 text-xs mt-1">{skill.description}</p>
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                              <button
+                                onClick={() => performSkillAction('update', skill.name)}
+                                className="p-1 rounded bg-gray-700 hover:bg-gray-600 text-xs"
+                                title="Update"
+                              >
+                                🔄
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ClawHub Link */}
+                <div className="pt-2 border-t border-gray-700">
+                  <a 
+                    href="https://clawhub.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors"
+                  >
+                    <span>🧩</span>
+                    <span>Browse ClawHub</span>
+                  </a>
+                </div>
+
+                {/* Suggested Skills */}
+                {skillsData.suggested.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Suggested</h3>
+                    <div className="space-y-2">
+                      {skillsData.suggested.map((skill, idx) => (
+                        <div 
+                          key={idx}
+                          className="bg-gray-800 rounded-lg p-3 border border-gray-700"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-white text-sm">{skill.name}</h4>
+                              <p className="text-gray-400 text-xs mt-1">{skill.description}</p>
+                            </div>
+                            <button
+                              onClick={() => performSkillAction('install', skill.name)}
+                              className="p-1.5 rounded bg-green-700 hover:bg-green-600 text-xs"
+                              title="Install"
+                            >
+                              ➕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={fetchSkills}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors"
+              >
+                Load Skills
+              </button>
             )}
           </div>
         )}

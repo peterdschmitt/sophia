@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'https://peters-mac-mini.tail382f8f.ts.net';
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN;
-const VAPI_API_KEY = '6e5e9385-2bb4-47e0-af96-4c310671eb57';
+const VAPI_API_KEY = process.env.VAPI_API_KEY;
 const VAPI_ASSISTANT_ID = '82df8575-232a-4751-9346-7b6cccc8bc25';
 
 // OpenAI TTS voices
@@ -52,18 +52,20 @@ export async function GET() {
     let vapiVoice = 'Jess';
     let vapiProvider = 'vapi';
     
-    try {
-      const vapiRes = await fetch(`https://api.vapi.ai/assistant/${VAPI_ASSISTANT_ID}`, {
-        headers: { 'Authorization': `Bearer ${VAPI_API_KEY}` },
-      });
-      
-      if (vapiRes.ok) {
-        const assistant = await vapiRes.json();
-        vapiVoice = assistant.voice?.voiceId || 'Jess';
-        vapiProvider = assistant.voice?.provider || 'vapi';
+    if (VAPI_API_KEY) {
+      try {
+        const vapiRes = await fetch(`https://api.vapi.ai/assistant/${VAPI_ASSISTANT_ID}`, {
+          headers: { 'Authorization': `Bearer ${VAPI_API_KEY}` },
+        });
+
+        if (vapiRes.ok) {
+          const assistant = await vapiRes.json();
+          vapiVoice = assistant.voice?.voiceId || 'Jess';
+          vapiProvider = assistant.voice?.provider || 'vapi';
+        }
+      } catch (e) {
+        console.error('Failed to fetch VAPI settings:', e);
       }
-    } catch (e) {
-      console.error('Failed to fetch VAPI settings:', e);
     }
     
     return NextResponse.json({
@@ -120,6 +122,10 @@ Confirm when done.`,
       return NextResponse.json({ success: true, message: `OpenAI voice updated to ${voice}` });
       
     } else if (type === 'vapi') {
+      if (!VAPI_API_KEY) {
+        return NextResponse.json({ error: 'VAPI API key is not configured' }, { status: 503 });
+      }
+
       // Update VAPI assistant voice directly
       const voiceConfig: Record<string, unknown> = { voiceId: voice };
       
